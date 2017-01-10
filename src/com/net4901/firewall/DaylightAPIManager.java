@@ -101,8 +101,30 @@ public class DaylightAPIManager {
 		}
 	
 	public void addRule(FirewallRule rule) {
+		String firewallRuleXML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><flow xmlns=\"urn:opendaylight:flow:inventory\"><priority>104" +
+						 "</priority><flow-name>TEST</flow-name>";
 		
+		firewallRuleXML += "<match><ethernet-match><ethernet-type><type>2048</type></ethernet-type></ethernet-match>";
+		if (rule.destinationNetwork != null) {
+			firewallRuleXML += "<ipv4-destination>" + rule.destinationNetwork + "/" + rule.destinationMask + "</ipv4-destination>";
+		}
+		
+		if (rule.sourceNetwork != null) {
+			firewallRuleXML += "<ipv4-source>" + rule.sourceNetwork + "/" + rule.sourceMask + "</ipv4-source>";
+		}
+		
+		firewallRuleXML += "</match>";
+		
+		firewallRuleXML += "<id>" + rule.flowId + "</id><table_id>" + rule.tableId + "</table_id>";
+		
+		firewallRuleXML += "<instructions>";
+		firewallRuleXML += "<instruction><order>0</order><apply-actions><action><order>0</order><drop-action/></action></apply-actions></instruction>";
+		firewallRuleXML += "</instructions>";
+		firewallRuleXML += "</flow>";		
+		
+		System.out.println(executePut("http://134.117.89.170:8181/restconf/config/opendaylight-inventory:nodes/node/openflow:3/table/"+rule.tableId + "/flow/"+rule.flowId, firewallRuleXML));
 	}
+	
 	
 	public Boolean apply() {
 		// Call the Daylight API to apply

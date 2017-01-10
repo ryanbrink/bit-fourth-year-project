@@ -1,16 +1,17 @@
 package com.net4901.firewall;
 
 public class FirewallRule {
+	int flowId = 1;
+	int tableId = 0;
+	
 	int sourcePort; 			//-1 is any
 	int destinationPort;
 
-	String protocol = "ip"; 	//"tcp", "udp", or "ip"
+	String sourceNetwork;
+	String sourceMask; // CIDR
 
-	int sourceNetwork;
-	int sourceMask; // 0.0.0.0
-
-	int destinationNetwork;
-	int destinationMask;
+	String destinationNetwork;
+	String destinationMask;
 
 	Boolean isDenied;
 }
