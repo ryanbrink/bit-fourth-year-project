@@ -10,10 +10,15 @@ import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
 
+import org.json.JSONException;
+
 
 public class CommandLine {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
+		DaylightAPIManager manager = new DaylightAPIManager();		
+		FirewallRule rule = new FirewallRule(manager.readFlow(false, "openflow:3", 0, 1));
+		
 		String protocol = null;
 		int protocolNum = -1;
 		String command = null;
@@ -28,7 +33,7 @@ public class CommandLine {
 		int destPort = 0;
 		System.out.println(args.length);
 		if(!(args.length == 6 || args.length ==8)){
-			System.err.println("Command syntax: Command [Set|show|Delete]  [nodeid] [tableID] [flowID] [source IP/mask] [dest IP/mask] [TCP|ICMP|nothing] [tcp port|icmp type]");
+			System.err.println("Command syntax: Command [set|show|delete]  [nodeid] [tableID] [flowID] [source IP/mask] [dest IP/mask] [TCP|ICMP|nothing] [tcp port|icmp type]");
 			System.exit(1);
 		}
 		command = args[0];
@@ -49,7 +54,6 @@ public class CommandLine {
 			protocolNum = Integer.parseInt(args[7]);
 		}
 		
-		DaylightAPIManager manager = new DaylightAPIManager();		
 		
 		//Test args
 		System.out.println("Command:     "+command);
@@ -68,10 +72,28 @@ public class CommandLine {
 		
 		
 		FirewallRule testRule = new FirewallRule();
-		testRule.destinationNetwork = "192.168.2.3";
-		testRule.destinationMask = "32";
-		testRule.deny = true;
-		//manager.updateFlow(testRule,"openflow:3",0,1);//object, node, table, flowID
-		System.out.println("Ran Rule");
+		testRule.destinationNetwork = destMask;
+		testRule.destinationMask = "" + destPort;
+		
+		testRule.sourceNetwork = sourceIP;
+		testRule.sourceMask = "" + sourceMask;
+		
+		// TODO: set the testRule parameters based on the command line parameters
+		
+		if (command.equals("set")) {
+			if (manager.updateFlow(testRule,nodeID,tableID,flowID)) {
+				System.out.println("Update succeeded.");
+			} else {
+				System.out.println("Update failed.");
+			}
+		} else if (command.equals("delete")) {
+			if (manager.deleteFlow(nodeID,tableID,flowID)) {
+				System.out.println("Delete succeeded.");
+			} else {
+				System.out.println("Delete failed.");
+			}
+		} else {
+			System.out.println(manager.readFlow(true, nodeID,tableID,flowID));
+		}		
 	}
 }

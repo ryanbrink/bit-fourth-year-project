@@ -30,5 +30,19 @@ public class FirewallRule {
 		
 	}
 	
-
+	// TODO: complete this
+	// Create a rule from the response JSON
+	public FirewallRule(String ruleJSON) throws JSONException {
+		JSONObject firewallJSONObj = new JSONObject(ruleJSON).getJSONArray("flow-node-inventory:flow").optJSONObject(0);
+		
+		if (firewallJSONObj.getJSONObject("match").getString("ipv4-source") != null) {
+			sourceNetwork = firewallJSONObj.getJSONObject("match").getString("ipv4-source").split("/")[0];
+			sourceMask = firewallJSONObj.getJSONObject("match").getString("ipv4-source").split("/")[1];
+		}
+		
+		if (firewallJSONObj.getJSONObject("match").getString("ipv4-destination") != null) {
+			destinationNetwork = firewallJSONObj.getJSONObject("match").getString("ipv4-destination").split("/")[0];
+			destinationMask = firewallJSONObj.getJSONObject("match").getString("ipv4-destination").split("/")[1];
+		}
+	}
 }
