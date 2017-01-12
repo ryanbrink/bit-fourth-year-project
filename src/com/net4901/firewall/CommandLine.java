@@ -18,14 +18,12 @@ public class CommandLine {
 		}
 		
 		DaylightAPIManager manager = new DaylightAPIManager("", 1);		
-		manager.addRule(new FirewallRule());
-		manager.apply();	
 		
 		FirewallRule testRule = new FirewallRule();
 		testRule.destinationNetwork = "192.168.2.3";
 		testRule.destinationMask = "32";
-		testRule.isDenied = true;
+		testRule.deny = true;
 		
-		manager.addRule(testRule);
+		manager.updateFlow(rule, "openflow:3", 0, 1);
 	}
 }
