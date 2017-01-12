@@ -14,18 +14,35 @@ public class DaylightAPIManager {
 	int serverPort;
 	String serverIP;
 	
+	String username = "admin";
+	String password = "admin";
+	
 	public DaylightAPIManager(String serverIP, int serverPort) {
 		this.serverPort = serverPort;
 		this.serverIP = serverIP;
 	}
 	
-	public static String executeGet(String targetURL, String urlParameters) {
+	private String flowURL(Boolean isOperational, String nodeId, int tableId, int flowId) {
+		return "restconf/" + (isOperational ? "operational" : "config") + "/opendaylight-inventory:nodes/node/" + nodeId + 
+				"/table/"+tableId + 
+				"/flow/" + flowId;
+	}
+	
+	public Boolean updateFlow(FirewallRule rule, String nodeId, int tableId, int flowId) {		
+		return executePut(flowURL(false, nodeId, tableId, flowId), getRuleXML(rule, nodeId, tableId, flowId));
+	}
+	
+	private String getFlowXML(String nodeId, int tableId, int flowId) {
+		return executeGet(flowURL(true, nodeId, tableId, flowId));
+	}
+	
+	private String executeGet(String targetPath) {
 		  HttpURLConnection connection = null;
-
+		  String targetURL = "http://" + serverIP + "/" + targetPath;
 		  try {
 			  Authenticator.setDefault (new Authenticator() {
 				    protected PasswordAuthentication getPasswordAuthentication() {
-				        return new PasswordAuthentication ("admin", "admin".toCharArray());
+				        return new PasswordAuthentication (username, password.toCharArray());
 				    }
 				});
 			  
@@ -57,13 +74,13 @@ public class DaylightAPIManager {
 		  }
 		}
 	
-	public static String executePut(String targetURL, String putData) {
+	private Boolean executePut(String targetURL, String putData) {
 		  HttpURLConnection connection = null;
 
 		  try {
 			  Authenticator.setDefault (new Authenticator() {
 				    protected PasswordAuthentication getPasswordAuthentication() {
-				        return new PasswordAuthentication ("admin", "admin".toCharArray());
+				        return new PasswordAuthentication (username, password.toCharArray());
 				    }
 				});
 			  
@@ -88,21 +105,24 @@ public class DaylightAPIManager {
 		      response.append(line);
 		      response.append('\r');
 		    }
-		    rd.close();
-		    return response.toString();
+		    rd.close();		
+		    return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
 		  } catch (Exception e) {
 		    e.printStackTrace();
-		    return null;
+		    return false;
 		  } finally {
 		    if (connection != null) {
 		      connection.disconnect();
-		    }
+		    }		    
 		  }
+		  
+		  
 		}
 	
-	public void addRule(FirewallRule rule) {
-		String firewallRuleXML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><flow xmlns=\"urn:opendaylight:flow:inventory\"><priority>104" +
-						 "</priority><flow-name>TEST</flow-name>";
+	private String getRuleXML(FirewallRule rule, String targetNode, int targetTableId, int targetFlowId) {
+		String firewallRuleXML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><flow xmlns=\"urn:opendaylight:flow:inventory\">"+
+						"<priority>" + rule.priority + "</priority>" +
+						 "<flow-name>" + rule.flowName + "</flow-name>";
 		
 		firewallRuleXML += "<match><ethernet-match><ethernet-type><type>2048</type></ethernet-type></ethernet-match>";
 		if (rule.destinationNetwork != null) {
@@ -117,17 +137,13 @@ public class DaylightAPIManager {
 		
 		firewallRuleXML += "<id>" + rule.flowId + "</id><table_id>" + rule.tableId + "</table_id>";
 		
-		firewallRuleXML += "<instructions>";
-		firewallRuleXML += "<instruction><order>0</order><apply-actions><action><order>0</order><drop-action/></action></apply-actions></instruction>";
-		firewallRuleXML += "</instructions>";
+		if (rule.deny) {
+			firewallRuleXML += "<instructions>";
+			firewallRuleXML += "<instruction><order>0</order><apply-actions><action><order>0</order><drop-action/></action></apply-actions></instruction>";
+			firewallRuleXML += "</instructions>";
+		}
 		firewallRuleXML += "</flow>";		
 		
-		System.out.println(executePut("http://134.117.89.170:8181/restconf/config/opendaylight-inventory:nodes/node/openflow:3/table/"+rule.tableId + "/flow/"+rule.flowId, firewallRuleXML));
-	}
-	
-	
-	public Boolean apply() {
-		// Call the Daylight API to apply
-		return false;
+		return firewallRuleXML;
 	}
 }
