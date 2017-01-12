@@ -1,4 +1,5 @@
 package com.net4901.firewall;
+import org.json.*;
 
 public class FirewallRule {
 	String flowName 				= "TEST";
@@ -23,4 +24,16 @@ public class FirewallRule {
 	String destinationMask			= null;
 
 	Boolean deny					= true;
+	
+	public FirewallRule(String ruleJSON) {
+		JSONObject obj = new JSONObject(" .... ");
+		String pageName = obj.getJSONObject("pageInfo").getString("pageName");
+
+		JSONArray arr = obj.getJSONArray("posts");
+		for (int i = 0; i < arr.length(); i++)
+		{
+		    String post_id = arr.getJSONObject(i).getString("post_id");
+		    ......
+		}
+	}
 }

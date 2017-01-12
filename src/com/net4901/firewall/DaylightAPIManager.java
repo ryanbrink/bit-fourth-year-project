@@ -11,13 +11,17 @@ import java.net.URL;
 
 public class DaylightAPIManager {
 	
-	int serverPort;
-	String serverIP;
+	String serverPort = "8181";
+	String serverIP = "134.117.89.170";
 	
 	String username = "admin";
 	String password = "admin";
 	
-	public DaylightAPIManager(String serverIP, int serverPort) {
+	public DaylightAPIManager(){
+	
+	}
+	
+	public DaylightAPIManager(String serverIP, String serverPort) {
 		this.serverPort = serverPort;
 		this.serverIP = serverIP;
 	}
@@ -28,17 +32,59 @@ public class DaylightAPIManager {
 				"/flow/" + flowId;
 	}
 	
-	public Boolean updateFlow(FirewallRule rule, String nodeId, int tableId, int flowId) {		
+	public Boolean deleteFlow(String nodeId, int tableId, int flowId) {
+		return executeDelete(flowURL(false, nodeId, tableId, flowId));
+	}
+	
+	public Boolean updateFlow(FirewallRule rule, String nodeId, int tableId, int flowId) throws Exception {		
 		return executePut(flowURL(false, nodeId, tableId, flowId), getRuleXML(rule, nodeId, tableId, flowId));
 	}
 	
-	private String getFlowXML(String nodeId, int tableId, int flowId) {
-		return executeGet(flowURL(true, nodeId, tableId, flowId));
+	public String readFlow(Boolean readOperational, String nodeId, int tableId, int flowId) {
+		return executeGet(flowURL(readOperational, nodeId, tableId, flowId));
+	}
+	
+	private Boolean executeDelete(String targetPath) {
+		HttpURLConnection connection = null;
+		  String targetURL = "http://" + serverIP + ":"+ serverPort +"/" + targetPath;
+		  try {
+			  Authenticator.setDefault (new Authenticator() {
+				    protected PasswordAuthentication getPasswordAuthentication() {
+				        return new PasswordAuthentication (username, password.toCharArray());
+				    }
+				});
+			  
+		    //Create connection
+		    URL url = new URL(targetURL);
+		    connection = (HttpURLConnection) url.openConnection();
+		    connection.setRequestMethod("DELETE");
+		    connection.setRequestProperty("Content-Type", 
+		        "application/xml");
+
+		    //Get Response  
+		    InputStream is = connection.getInputStream();
+		    BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+		    StringBuilder response = new StringBuilder(); // or StringBuffer if Java version 5+
+		    String line;
+		    while ((line = rd.readLine()) != null) {
+		      response.append(line);
+		      response.append('\r');
+		    }
+		    rd.close();
+		    return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
+		  } catch (Exception e) {
+		    e.printStackTrace();
+		    return false;
+		  } finally {
+		    if (connection != null) {
+		      connection.disconnect();
+		    }
+		  }
 	}
 	
 	private String executeGet(String targetPath) {
 		  HttpURLConnection connection = null;
-		  String targetURL = "http://" + serverIP + "/" + targetPath;
+		  String targetURL = "http://" + serverIP + ":"+ serverPort +"/" + targetPath;
 		  try {
 			  Authenticator.setDefault (new Authenticator() {
 				    protected PasswordAuthentication getPasswordAuthentication() {
@@ -74,9 +120,10 @@ public class DaylightAPIManager {
 		  }
 		}
 	
-	private Boolean executePut(String targetURL, String putData) {
-		  HttpURLConnection connection = null;
-
+	private Boolean executePut(String targetPath, String putData) {
+		  HttpURLConnection connection = null;		 
+		  String targetURL = "http://" + serverIP + ":"+ serverPort +"/" + targetPath;
+		  StringBuilder response = new StringBuilder();
 		  try {
 			  Authenticator.setDefault (new Authenticator() {
 				    protected PasswordAuthentication getPasswordAuthentication() {
@@ -99,7 +146,7 @@ public class DaylightAPIManager {
 		    //Get Response  
 		    InputStream is = connection.getInputStream();
 		    BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-		    StringBuilder response = new StringBuilder(); // or StringBuffer if Java version 5+
+		    
 		    String line;
 		    while ((line = rd.readLine()) != null) {
 		      response.append(line);
@@ -109,6 +156,10 @@ public class DaylightAPIManager {
 		    return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
 		  } catch (Exception e) {
 		    e.printStackTrace();
+		    System.out.println("Request XML was:");
+		    System.out.println(putData);
+		    System.out.println("Response was:");
+		    System.out.println(response);
 		    return false;
 		  } finally {
 		    if (connection != null) {
@@ -119,19 +170,73 @@ public class DaylightAPIManager {
 		  
 		}
 	
-	private String getRuleXML(FirewallRule rule, String targetNode, int targetTableId, int targetFlowId) {
+	private String getRuleXML(FirewallRule rule, String targetNode, int targetTableId, int targetFlowId) throws Exception {
 		String firewallRuleXML = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><flow xmlns=\"urn:opendaylight:flow:inventory\">"+
 						"<priority>" + rule.priority + "</priority>" +
 						 "<flow-name>" + rule.flowName + "</flow-name>";
 		
+		// Always match IP packets
 		firewallRuleXML += "<match><ethernet-match><ethernet-type><type>2048</type></ethernet-type></ethernet-match>";
+		
+		// Destination network matching
 		if (rule.destinationNetwork != null) {
 			firewallRuleXML += "<ipv4-destination>" + rule.destinationNetwork + "/" + rule.destinationMask + "</ipv4-destination>";
 		}
-		
+
+		// Source network matching
 		if (rule.sourceNetwork != null) {
 			firewallRuleXML += "<ipv4-source>" + rule.sourceNetwork + "/" + rule.sourceMask + "</ipv4-source>";
 		}
+		
+		if (rule.transportProtocol != -1 && (rule.matchIcmpEchoRequest || rule.matchIcmpReply)) {
+			throw new Exception("You can't match ICMP and UDP or TCP!");
+		}
+		
+		// Transport and ICMP matching
+		if (rule.transportProtocol != -1 || rule.matchIcmpEchoRequest || rule.matchIcmpReply) {
+			firewallRuleXML += "<ip-match>";
+			
+			// Transport protocol matching
+			if (rule.transportProtocol != -1) {
+				if (rule.transportProtocol == 1) {
+					firewallRuleXML += "<ip-protocol>6</ip-protocol>";
+				} else {
+					firewallRuleXML += "<ip-protocol>17</ip-protocol>";
+				}	            
+			}
+			
+			// ICMP matching
+			if (rule.matchIcmpEchoRequest || rule.matchIcmpReply) {
+				firewallRuleXML+= "<ip-protocol>1</ip-protocol>";								
+			}
+			
+			firewallRuleXML += "</ip-match>";
+						
+			// Transport port matching
+			if (rule.transportProtocol == 1) {
+				if (rule.destinationPort != -1) {
+					firewallRuleXML += "<tcp-destination-port>"+ rule.destinationPort + "</tcp-destination-port>";
+				}
+				
+				if (rule.sourcePort != -1) {
+					firewallRuleXML += "<tcp-source-port>"+ rule.destinationPort + "</tcp-source-port>";
+				}
+			} else if (rule.transportProtocol == 2) {
+				// UDP!
+			}
+			
+			if (rule.matchIcmpEchoRequest || rule.matchIcmpReply) {
+				firewallRuleXML += "<icmpv4-match>";
+				if (rule.matchIcmpEchoRequest) {
+					firewallRuleXML += "<icmpv4-type>8</icmpv4-type><icmpv4-code>0</icmpv4-code>";
+				}
+				
+				if (rule.matchIcmpReply) {
+					firewallRuleXML += "<icmpv4-type>0</icmpv4-type><icmpv4-code>0</icmpv4-code>";
+				}
+				firewallRuleXML += "</icmpv4-match>";
+			}
+		}				
 		
 		firewallRuleXML += "</match>";
 		
