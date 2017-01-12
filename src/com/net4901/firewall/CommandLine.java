@@ -15,7 +15,7 @@ public class CommandLine {
 
 	public static void main(String[] args) throws IOException {
 		String protocol = null;
-		int protocolNum = 0;
+		int protocolNum = -1;
 		String command = null;
 		String nodeID = null;
 		int tableID = 0;
@@ -49,7 +49,7 @@ public class CommandLine {
 			protocolNum = Integer.parseInt(args[7]);
 		}
 		
-		DaylightAPIManager manager = new DaylightAPIManager("", 1);		
+		DaylightAPIManager manager = new DaylightAPIManager();		
 		
 		//Test args
 		System.out.println("Command:     "+command);

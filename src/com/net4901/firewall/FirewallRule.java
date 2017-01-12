@@ -1,4 +1,5 @@
 package com.net4901.firewall;
+
 import org.json.*;
 
 public class FirewallRule {
@@ -24,6 +25,10 @@ public class FirewallRule {
 	String destinationMask			= null;
 
 	Boolean deny					= true;
+	
+	public FirewallRule() {
+		
+	}
 	
 	public FirewallRule(String ruleJSON) {
 		JSONObject obj = new JSONObject(" .... ");
