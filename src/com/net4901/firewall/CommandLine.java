@@ -17,8 +17,9 @@ public class CommandLine {
 
 	public static void main(String[] args) throws Exception {
 		DaylightAPIManager manager = new DaylightAPIManager();		
-		FirewallRule rule = new FirewallRule(manager.readFlow(false, "openflow:3", 0, 1));
+		//FirewallRule rule = new FirewallRule(manager.readFlow(false, "openflow:3", 0, 1));
 		
+		//Initialize variables
 		String protocol = null;
 		int protocolNum = -1;
 		String command = null;
@@ -27,33 +28,45 @@ public class CommandLine {
 		int flowID = 0;
 		String source = null;
 		String sourceIP = null;
-		int sourceMask = 0;
+		String sourceMask = null;
 		String dest = null;
+		String destIP = null;
 		String destMask = null;
-		int destPort = 0;
-		System.out.println(args.length);
-		if(!(args.length == 6 || args.length ==8)){
-			System.err.println("Command syntax: Command [set|show|delete]  [nodeid] [tableID] [flowID] [source IP/mask] [dest IP/mask] [TCP|ICMP|nothing] [tcp port|icmp type]");
+		//System.out.println(args.length);
+		
+		//Parse input from command line
+		// Question: Should I add checks to make sure user is entering the right number of parameters for each command type?
+		if(!(args.length == 4||args.length == 6 || args.length ==8)){
+			System.err.println("Command syntax: Command [update|show|delete]  [nodeid] [tableID] [flowID] [source IP/mask] [dest IP/mask] [TCP|ICMP|nothing] [tcp port|icmp type]");
 			System.exit(1);
 		}
 		command = args[0];
-		//add if statement for what the command type is
-		nodeID = args[1];
-		tableID = Integer.parseInt(args[2]);
-		flowID = Integer.parseInt(args[3]);
-		source = args[4];
-		String[] sourceParts = source.split("/");
-		sourceIP = sourceParts[0];
-		sourceMask = Integer.parseInt(sourceParts[1]);
-		dest = args[5];
-		String[] destParts = dest.split("/");
-		destMask = destParts[0];
-		destPort = Integer.parseInt(destParts[1]);
-		if(args.length == 8){
-			protocol = args[6];
-			protocolNum = Integer.parseInt(args[7]);
+		if (command.equals("update")) {
+			nodeID = args[1];
+			tableID = Integer.parseInt(args[2]);
+			flowID = Integer.parseInt(args[3]);
+			source = args[4];
+			String[] sourceParts = source.split("/");
+			sourceIP = sourceParts[0];
+			sourceMask = sourceParts[1];
+			dest = args[5];
+			String[] destParts = dest.split("/");
+			destIP = destParts[0];
+			destMask = destParts[1];
+			if(args.length == 8){
+				protocol = args[6];
+				protocolNum = Integer.parseInt(args[7]);
+			}
 		}
-		
+		else if(command.equals("delete")||command.equals("show")){
+			nodeID = args[1];
+			tableID = Integer.parseInt(args[2]);
+			flowID = Integer.parseInt(args[3]);
+		}
+		else{
+			System.err.println("Command should be 'update','delete' or 'show'");
+			System.exit(1);
+		}
 		
 		//Test args
 		System.out.println("Command:     "+command);
@@ -64,23 +77,37 @@ public class CommandLine {
 		System.out.println("Source IP:   "+sourceIP);
 		System.out.println("Source Mask: "+sourceMask);
 		System.out.println("Dest:        "+dest);
-		System.out.println("Dest IP:     "+destMask);
-		System.out.println("Dest Mask:   "+destPort);
+		System.out.println("Dest IP:     "+destIP);
+		System.out.println("Dest Mask:   "+destMask);
 		System.out.println("Protocol:    "+protocol);
 		System.out.println("ProtocolNum: "+protocolNum);
 		
 		
-		
-		FirewallRule testRule = new FirewallRule();
-		testRule.destinationNetwork = destMask;
-		testRule.destinationMask = "" + destPort;
-		
-		testRule.sourceNetwork = sourceIP;
-		testRule.sourceMask = "" + sourceMask;
-		
+		//Create firewall rule and parameters
+		//Question: Why are the tableID and flowID in the firewallRule class but then passed separately below?
 		// TODO: set the testRule parameters based on the command line parameters
+		FirewallRule testRule = new FirewallRule();
+		if (command.equals("update")){
+			testRule.destinationNetwork = destIP;
+			testRule.destinationMask = "" + destMask;
+			
+			testRule.sourceNetwork = sourceIP;
+			testRule.sourceMask = "" + sourceMask;
+			
+			if(args.length == 8){
+				if (protocol.equals("ICMP")){
+					// Not sure what to set for ICMP
+					//testRule.transportProtocol=2;
+				}
+				else if(protocol.equals("TCP")){
+					testRule.transportProtocol=1;
+					testRule.destinationPort=protocolNum;
+				}
+			}
+		}
 		
-		if (command.equals("set")) {
+		//Send command 
+		if (command.equals("update")) {
 			if (manager.updateFlow(testRule,nodeID,tableID,flowID)) {
 				System.out.println("Update succeeded.");
 			} else {
