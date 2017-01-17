@@ -28,7 +28,7 @@ public class CommandLine {
 		}
 		
 		command = args[0];
-		if (command.equals("update")) {
+		if (command.toLowerCase().equals("update")) {
 			nodeID = args[1];
 			tableID = Integer.parseInt(args[2]);
 			flowID = Integer.parseInt(args[3]);
@@ -45,7 +45,7 @@ public class CommandLine {
 				protocolNum = Integer.parseInt(args[7]);
 			}
 		}
-		else if(command.equals("delete") || command.equals("show")){
+		else if(command.toLowerCase().equals("delete") || command.toLowerCase().equals("show")){
 			nodeID = args[1];
 			tableID = Integer.parseInt(args[2]);
 			flowID = Integer.parseInt(args[3]);
@@ -71,8 +71,6 @@ public class CommandLine {
 		
 		
 		//Create firewall rule and parameters
-		//Question: Why are the tableID and flowID in the firewallRule class but then passed separately below?
-		// TODO: set the testRule parameters based on the command line parameters
 		FirewallRule testRule = new FirewallRule();
 		if (command.equals("update")){
 			testRule.tableId = tableID;
@@ -85,21 +83,20 @@ public class CommandLine {
 			testRule.sourceMask = "" + sourceMask;
 			
 			if(args.length == 8){
-				if (protocol.equals("ICMP")){
+				if (protocol.toUpperCase().equals("ICMP")){
 					if (protocolNum == 8) {
 						testRule.matchIcmpEchoRequest = true;
 					} else {
 						testRule.matchIcmpReply = true;
 					}
 				}
-				else if(protocol.equals("TCP")){
+				else if(protocol.toUpperCase().equals("TCP")){
 					testRule.transportProtocol=1;
 					testRule.destinationPort=protocolNum;
 				}
 			}
 		}
 		
-		//Send command 
 		if (command.equals("update")) {
 			if (manager.updateFlow(testRule,nodeID)) {
 				System.out.println("Update succeeded.");

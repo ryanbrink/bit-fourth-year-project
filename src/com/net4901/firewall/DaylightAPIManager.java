@@ -156,10 +156,10 @@ public class DaylightAPIManager {
 		    return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
 		  } catch (Exception e) {
 		    e.printStackTrace();
-		    System.out.println("Request XML was:");
-		    System.out.println(putData);
-		    System.out.println("Response was:");
-		    System.out.println(response);
+		    System.err.println("Request XML was:");
+		    System.err.println(putData);
+		    System.err.println("Response was:");
+		    System.err.println(response);
 		    return false;
 		  } finally {
 		    if (connection != null) {
@@ -189,7 +189,7 @@ public class DaylightAPIManager {
 		}
 		
 		if (rule.transportProtocol != -1 && (rule.matchIcmpEchoRequest || rule.matchIcmpReply)) {
-			throw new Exception("You can't match ICMP and UDP or TCP!");
+			throw new Exception("You can't match ICMP AND UDP or TCP!");
 		}
 		
 		// Transport and ICMP matching
