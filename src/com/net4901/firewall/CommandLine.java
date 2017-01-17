@@ -1,18 +1,5 @@
 package com.net4901.firewall;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.Authenticator;
-import java.net.HttpURLConnection;
-import java.net.PasswordAuthentication;
-import java.net.URL;
-
-import org.json.JSONException;
-
-
 public class CommandLine {
 
 	public static void main(String[] args) throws Exception {
@@ -32,14 +19,14 @@ public class CommandLine {
 		String dest = null;
 		String destIP = null;
 		String destMask = null;
-		//System.out.println(args.length);
 		
 		//Parse input from command line
-		// Question: Should I add checks to make sure user is entering the right number of parameters for each command type?
 		if(!(args.length == 4||args.length == 6 || args.length ==8)){
-			System.err.println("Command syntax: Command [update|show|delete]  [nodeid] [tableID] [flowID] [source IP/mask] [dest IP/mask] [TCP|ICMP|nothing] [tcp port|icmp type]");
+			System.err.println("Command syntax: 	COMMAND			 NODE ID  TABLE  ID   FLOW  ID  SOURCE IP/MASK   DEST IP/MASK   OPTIONAL PROTOCOL	   PROTOCOL NUMBER");
+			System.err.println("			    [update|show|delete] [nodeid] [tableID]   [flowID] [source IP/mask] [dest IP/mask] 	   [TCP|ICMP] 	     [TCP port|ICMP type]");
 			System.exit(1);
 		}
+		
 		command = args[0];
 		if (command.equals("update")) {
 			nodeID = args[1];
@@ -58,12 +45,12 @@ public class CommandLine {
 				protocolNum = Integer.parseInt(args[7]);
 			}
 		}
-		else if(command.equals("delete")||command.equals("show")){
+		else if(command.equals("delete") || command.equals("show")){
 			nodeID = args[1];
 			tableID = Integer.parseInt(args[2]);
 			flowID = Integer.parseInt(args[3]);
 		}
-		else{
+		else {
 			System.err.println("Command should be 'update','delete' or 'show'");
 			System.exit(1);
 		}
@@ -88,6 +75,9 @@ public class CommandLine {
 		// TODO: set the testRule parameters based on the command line parameters
 		FirewallRule testRule = new FirewallRule();
 		if (command.equals("update")){
+			testRule.tableId = tableID;
+			testRule.flowId = flowID;
+			
 			testRule.destinationNetwork = destIP;
 			testRule.destinationMask = "" + destMask;
 			
@@ -96,8 +86,11 @@ public class CommandLine {
 			
 			if(args.length == 8){
 				if (protocol.equals("ICMP")){
-					// Not sure what to set for ICMP
-					//testRule.transportProtocol=2;
+					if (protocolNum == 8) {
+						testRule.matchIcmpEchoRequest = true;
+					} else {
+						testRule.matchIcmpReply = true;
+					}
 				}
 				else if(protocol.equals("TCP")){
 					testRule.transportProtocol=1;
@@ -108,7 +101,7 @@ public class CommandLine {
 		
 		//Send command 
 		if (command.equals("update")) {
-			if (manager.updateFlow(testRule,nodeID,tableID,flowID)) {
+			if (manager.updateFlow(testRule,nodeID)) {
 				System.out.println("Update succeeded.");
 			} else {
 				System.out.println("Update failed.");

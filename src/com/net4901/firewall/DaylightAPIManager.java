@@ -36,8 +36,8 @@ public class DaylightAPIManager {
 		return executeDelete(flowURL(false, nodeId, tableId, flowId));
 	}
 	
-	public Boolean updateFlow(FirewallRule rule, String nodeId, int tableId, int flowId) throws Exception {		
-		return executePut(flowURL(false, nodeId, tableId, flowId), getRuleXML(rule, nodeId, tableId, flowId));
+	public Boolean updateFlow(FirewallRule rule, String nodeId) throws Exception {		
+		return executePut(flowURL(false, nodeId, rule.tableId, rule.flowId), getRuleXML(rule, nodeId, rule.tableId, rule.flowId));
 	}
 	
 	public String readFlow(Boolean readOperational, String nodeId, int tableId, int flowId) {
